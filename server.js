@@ -2,6 +2,7 @@ const uuid = require("uuid/v4");
 const streamLength = require("stream-length");
 const tmpl = require("./tmpl");
 const img = require("./img");
+const { success, error } = require("./response");
 
 // Kill other AWS variables and just use the ones
 // defined in ~/.aws/credentials
@@ -26,8 +27,6 @@ const s3 = new aws.S3({
   params: { Bucket: BUCKET_NAME }
 });
 
-console.log(s3.config.credentials);
-
 // Express
 const express = require("express");
 const bodyParser = require("body-parser");
@@ -45,23 +44,22 @@ app.post("/", (req, res) => {
   const html = tmpl(code, background, color);
 
   // Create the Image to upload to s3
-  img(html).then(data => {
-    // Configure s3
-    const params = {
-      Key: `${uuid()}.png`,
-      Body: data,
-      ContentType: "image/png"
-    };
+  const stream = img(html);
 
-    s3.putObject(params, (err, data) => {
-      if (err) {
-        res.send(err);
-      }
+  // Configure s3
+  const params = {
+    Key: `${uuid()}.png`,
+    Body: stream,
+    ContentType: "image/png"
+  };
 
-      res.send("https://s3.amazonaws.com/" + BUCKET_NAME + "/" + params.Key);
-    });
+  s3.upload(params, (err, data) => {
+    if (err) {
+      res.send(error(err));
+    }
+    res.send(success(data.Location));
   });
 });
 
 // Listen and start!
-app.listen(8000, () => console.log("Example app listening on port 8000!"));
+app.listen(8000, () => console.log("code-to-cloth listening on port 8000!"));

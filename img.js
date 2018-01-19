@@ -1,15 +1,15 @@
 const webshot = require("webshot");
 const fs = require("fs");
+const Readable = require("stream").Readable;
 
 module.exports = function(html) {
-  return new Promise((resolve, reject) => {
-    const stream = webshot(html, {
+  return new Readable().wrap(
+    webshot(html, {
       siteType: "html",
       screenSize: {
-        width: 320
+        width: 1024,
+        height: 1024
       }
-    });
-
-    stream.on("data", data => resolve(data));
-  });
+    })
+  );
 };
